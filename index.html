@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprite Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-bg: #1a1a1a;
+            --secondary-bg: #2d2d2d;
+            --tertiary-bg: #3a3a3a;
+            --accent-bg: #404040;
+            --panel-bg: #252525;
+            --border-color: #404040;
+            --border-light: #555555;
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --text-muted: #999999;
+            --accent-blue: #0ea5e9;
+            --accent-blue-hover: #0284c7;
+            --accent-red: #ef4444;
+            --accent-red-hover: #dc2626;
+            --accent-green: #22c55e;
+            --accent-orange: #f97316;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--primary-bg) 0%, var(--secondary-bg) 100%);
+            color: var(--text-primary);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .main-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            backdrop-filter: blur(10px);
+        }
+
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            background: var(--secondary-bg);
+            border-right: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .canvas-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 25% 25%, rgba(14, 165, 233, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(34, 197, 94, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .grid-wrapper {
+            position: relative;
+            border: 2px solid var(--border-light);
+            border-radius: 12px;
+            background: #ffffff;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+
+        #sprite-canvas {
+            display: block;
+            cursor: crosshair;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            border-radius: 10px;
+        }
+
+        .ui-panel {
+            width: 280px;
+            background: var(--panel-bg);
+            border-left: 1px solid var(--border-color);
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .ui-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .ui-panel::-webkit-scrollbar-track {
+            background: var(--secondary-bg);
+            border-radius: 3px;
+        }
+
+        .ui-panel::-webkit-scrollbar-thumb {
+            background: var(--border-light);
+            border-radius: 3px;
+        }
+
+        .ui-panel::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-blue);
+        }
+
+        .ui-section {
+            background: var(--tertiary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s ease;
+        }
+
+        .ui-section:hover {
+            border-color: var(--border-light);
+            box-shadow: var(--shadow-md);
+        }
+
+        .ui-section h3 {
+            margin-bottom: 16px;
+            color: var(--text-primary);
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ui-section h3::before {
+            content: '';
+            width: 3px;
+            height: 16px;
+            background: var(--accent-blue);
+            border-radius: 2px;
+        }
+
+        .color-picker-section {
+            text-align: center;
+        }
+
+        .color-wheel {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 12px auto;
+            position: relative;
+            cursor: crosshair;
+            border: 3px solid var(--border-light);
+            box-shadow: var(--shadow-md);
+            transition: all 0.2s ease;
+        }
+
+        .color-wheel:hover {
+            border-color: var(--accent-blue);
+            transform: scale(1.02);
+        }
+
+        .brightness-slider {
+            width: 100%;
+            margin: 12px 0;
+        }
+
+        .rgb-inputs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .rgb-input {
+            text-align: center;
+        }
+
+        .rgb-input label {
+            display: block;
+            font-size: 11px;
+            font-weight: 500;
+            margin-bottom: 4px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .rgb-input input {
+            width: 100%;
+            padding: 8px 6px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--secondary-bg);
+            color: var(--text-primary);
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .rgb-input input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        }
+
+        .color-preview {
+            width: 100%;
+            height: 36px;
+            border: 2px solid var(--border-light);
+            border-radius: 8px;
+            margin: 12px 0;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s ease;
+        }
+
+        .color-preview:hover {
+            transform: scale(1.02);
+            box-shadow: var(--shadow-md);
+        }
+
+        .grid-size-section .size-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .size-button {
+            padding: 10px 8px;
+            border: 1px solid var(--border-color);
+            background: var(--secondary-bg);
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            font-size: 12px;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .size-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .size-button:hover::before {
+            left: 100%;
+        }
+
+        .size-button:hover {
+            background: var(--accent-bg);
+            color: var(--text-primary);
+            border-color: var(--border-light);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .size-button.active {
+            background: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+            box-shadow: var(--shadow-md);
+        }
+
+        .tools-section .tool-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .tool-button {
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            background: var(--secondary-bg);
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tool-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .tool-button:hover::before {
+            left: 100%;
+        }
+
+        .tool-button:hover {
+            background: var(--accent-bg);
+            color: var(--text-primary);
+            border-color: var(--border-light);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .tool-button.active {
+            background: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+            box-shadow: var(--shadow-md);
+        }
+
+        .eraser-toggle {
+            background: var(--accent-red) !important;
+            border-color: var(--accent-red) !important;
+            color: white !important;
+        }
+
+        .eraser-toggle:hover {
+            background: var(--accent-red-hover) !important;
+        }
+
+        .eraser-toggle.active {
+            background: var(--accent-red-hover) !important;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.3) !important;
+        }
+
+        .export-section .export-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .export-button {
+            padding: 10px 8px;
+            border: 1px solid var(--accent-blue);
+            background: var(--accent-blue);
+            color: white;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .export-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .export-button:hover::before {
+            left: 100%;
+        }
+
+        .export-button:hover {
+            background: var(--accent-blue-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--primary-bg);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 500;
+            border-top: 1px solid var(--border-color);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .slider {
+            width: 100%;
+            height: 20px;
+            border-radius: 10px;
+            outline: none;
+            -webkit-appearance: none;
+            background: linear-gradient(to right, #000 0%, #fff 100%);
+            border: 2px solid var(--border-light);
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s ease;
+        }
+
+        .slider:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+            transition: all 0.2s ease;
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            background: var(--accent-blue-hover);
+            transform: scale(1.1);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            cursor: pointer;
+            border: none;
+            box-shadow: var(--shadow-md);
+        }
+
+        .undo-redo {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .undo-redo button {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            background: var(--secondary-bg);
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .undo-redo button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .undo-redo button:hover::before {
+            left: 100%;
+        }
+
+        .undo-redo button:hover:not(:disabled) {
+            background: var(--accent-green);
+            color: white;
+            border-color: var(--accent-green);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .undo-redo button:disabled {
+            background: var(--accent-bg);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            border-color: var(--border-color);
+        }
+
+        .zoom-button {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            background: var(--secondary-bg);
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .zoom-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .zoom-button:hover::before {
+            left: 100%;
+        }
+
+        .zoom-button:hover {
+            background: var(--accent-orange);
+            color: white;
+            border-color: var(--accent-orange);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Animation for tool selection */
+        @keyframes toolSelect {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .tool-button.active {
+            animation: toolSelect 0.3s ease;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .ui-panel {
+                width: 240px;
+                padding: 16px;
+            }
+
+            .canvas-container {
+                padding: 16px;
+            }
+        }
+
+        /* Focus states for accessibility */
+        button:focus-visible,
+        input:focus-visible {
+            outline: 2px solid var(--accent-blue);
+            outline-offset: 2px;
+        }
+
+        /* Loading animation */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loading {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="canvas-container">
+            <div class="grid-wrapper">
+                <canvas id="sprite-canvas" width="512" height="512"></canvas>
+            </div>
+        </div>
+
+        <div class="ui-panel">
+            <div class="ui-section color-picker-section">
+                <h3>Color Picker</h3>
+                <canvas class="color-wheel" id="color-wheel" width="120" height="120"></canvas>
+                <input type="range" class="slider brightness-slider" id="brightness-slider" min="0" max="100" value="100">
+                <div class="rgb-inputs">
+                    <div class="rgb-input">
+                        <label>R</label>
+                        <input type="number" id="rgb-r" min="0" max="255" value="255">
+                    </div>
+                    <div class="rgb-input">
+                        <label>G</label>
+                        <input type="number" id="rgb-g" min="0" max="255" value="0">
+                    </div>
+                    <div class="rgb-input">
+                        <label>B</label>
+                        <input type="number" id="rgb-b" min="0" max="255" value="0">
+                    </div>
+                </div>
+                <div class="color-preview" id="color-preview" style="background-color: rgb(255, 0, 0);"></div>
+            </div>
+
+            <div class="ui-section grid-size-section">
+                <h3>Grid Size</h3>
+                <div class="size-buttons">
+                    <button class="size-button" data-size="8">8x8</button>
+                    <button class="size-button" data-size="16">16x16</button>
+                    <button class="size-button active" data-size="32">32x32</button>
+                    <button class="size-button" data-size="64">64x64</button>
+                    <button class="size-button" data-size="128">128x128</button>
+                </div>
+            </div>
+
+            <div class="ui-section tools-section">
+                <h3>Tools</h3>
+                <div class="undo-redo">
+                    <button id="undo-btn">↶ Undo</button>
+                    <button id="redo-btn">↷ Redo</button>
+                </div>
+                <div class="zoom-controls" style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    <button id="zoom-out-btn" class="zoom-button">− Zoom Out</button>
+                    <button id="zoom-in-btn" class="zoom-button">+ Zoom In</button>
+                </div>
+                <div class="tool-buttons">
+                    <button class="tool-button active" data-tool="brush">🖌️ Brush</button>
+                    <button class="tool-button" data-tool="bucket">🪣 Bucket Fill</button>
+                    <button class="tool-button" data-tool="rectangle">▭ Rectangle</button>
+                    <button class="tool-button" data-tool="eyedropper">🎨 Eyedropper</button>
+                    <button class="tool-button eraser-toggle" id="eraser-toggle">🗑️ Eraser Mode</button>
+                </div>
+            </div>
+
+            <div class="ui-section export-section">
+                <h3>Export</h3>
+                <div class="filename-input" style="margin-bottom: 12px;">
+                    <label for="filename-input" style="display: block; margin-bottom: 4px; font-size: 11px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Filename:</label>
+                    <input type="text" id="filename-input" placeholder="Enter filename without extension" value="sprite" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--secondary-bg); color: var(--text-primary); font-size: 13px; transition: all 0.2s ease;">
+                </div>
+                <div class="export-buttons">
+                    <button class="export-button" data-format="png">PNG</button>
+                    <button class="export-button" data-format="jpg">JPG</button>
+                    <button class="export-button" data-format="bmp">BMP</button>
+                    <button class="export-button" data-format="gif">GIF</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar" id="status-bar">
+        Tool: Brush | Grid: 32x32 | Color: RGB(255, 0, 0)
+    </div>
+
+    <script>
+        class SpriteEditor {
+            constructor() {
+                this.canvas = document.getElementById('sprite-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.colorWheel = document.getElementById('color-wheel');
+                this.colorWheelCtx = this.colorWheel.getContext('2d');
+
+                // State
+                this.gridSize = 32;
+                this.baseCanvasSize = 512; // Base canvas size
+                this.zoomLevel = 1; // Zoom multiplier
+                this.pixelSize = this.baseCanvasSize / this.gridSize;
+                this.currentTool = 'brush';
+                this.eraserMode = false;
+                this.currentColor = { r: 255, g: 0, b: 0 };
+                this.brightness = 1;
+                this.hue = 0;
+                this.saturation = 1;
+
+                // Grid data
+                this.grid = this.createEmptyGrid();
+                this.history = [this.copyGrid(this.grid)];
+                this.historyIndex = 0;
+
+                // Mouse state
+                this.isDrawing = false;
+                this.isRectSelecting = false;
+                this.rectStart = null;
+                this.rectEnd = null;
+
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.drawColorWheel();
+                this.updateCanvas();
+                this.updateStatus();
+            }
+
+            createEmptyGrid() {
+                const grid = [];
+                for (let y = 0; y < this.gridSize; y++) {
+                    grid[y] = [];
+                    for (let x = 0; x < this.gridSize; x++) {
+                        grid[y][x] = null; // null represents transparent/empty
+                    }
+                }
+                return grid;
+            }
+
+            copyGrid(grid) {
+                return grid.map(row => [...row]);
+            }
+
+            setupEventListeners() {
+                // Canvas events
+                this.canvas.addEventListener('mousedown', this.handleCanvasMouseDown.bind(this));
+                this.canvas.addEventListener('mousemove', this.handleCanvasMouseMove.bind(this));
+                this.canvas.addEventListener('mouseup', this.handleCanvasMouseUp.bind(this));
+                this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+                // Color wheel events
+                this.colorWheel.addEventListener('click', this.handleColorWheelClick.bind(this));
+
+                // Brightness slider
+                document.getElementById('brightness-slider').addEventListener('input', (e) => {
+                    this.brightness = e.target.value / 100;
+                    this.updateColorFromHSB();
+                });
+
+                // RGB inputs
+                ['r', 'g', 'b'].forEach(component => {
+                    document.getElementById(`rgb-${component}`).addEventListener('input', (e) => {
+                        this.currentColor[component] = parseInt(e.target.value) || 0;
+                        this.updateColorPreview();
+                        this.updateStatus();
+                    });
+                });
+
+                // Grid size buttons
+                document.querySelectorAll('.size-button').forEach(button => {
+                    button.addEventListener('click', () => {
+                        document.querySelectorAll('.size-button').forEach(b => b.classList.remove('active'));
+                        button.classList.add('active');
+                        this.changeGridSize(parseInt(button.dataset.size));
+                    });
+                });
+
+                // Tool buttons
+                document.querySelectorAll('.tool-button:not(.eraser-toggle)').forEach(button => {
+                    button.addEventListener('click', () => {
+                        document.querySelectorAll('.tool-button:not(.eraser-toggle)').forEach(b => b.classList.remove('active'));
+                        button.classList.add('active');
+                        this.currentTool = button.dataset.tool;
+                        this.updateStatus();
+                    });
+                });
+
+                // Eraser toggle
+                document.getElementById('eraser-toggle').addEventListener('click', () => {
+                    this.eraserMode = !this.eraserMode;
+                    const button = document.getElementById('eraser-toggle');
+                    button.classList.toggle('active', this.eraserMode);
+                    this.updateStatus();
+                });
+
+                // Undo/Redo
+                document.getElementById('undo-btn').addEventListener('click', () => this.undo());
+                document.getElementById('redo-btn').addEventListener('click', () => this.redo());
+
+                // Export buttons
+                document.querySelectorAll('.export-button').forEach(button => {
+                    button.addEventListener('click', () => {
+                        this.exportImage(button.dataset.format);
+                    });
+                });
+
+                // Zoom buttons - Fixed direction
+                document.getElementById('zoom-in-btn').addEventListener('click', () => this.changeZoom(1));
+                document.getElementById('zoom-out-btn').addEventListener('click', () => this.changeZoom(-1));
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey) {
+                        if (e.key === 'z' && !e.shiftKey) {
+                            e.preventDefault();
+                            this.undo();
+                        } else if ((e.key === 'Z' && e.shiftKey) || e.key === 'y') {
+                            e.preventDefault();
+                            this.redo();
+                        }
+                    }
+                });
+            }
+
+            drawColorWheel() {
+                const centerX = 60;
+                const centerY = 60;
+                const radius = 50;
+
+                for (let angle = 0; angle < 360; angle++) {
+                    for (let r = 0; r < radius; r++) {
+                        const x = centerX + r * Math.cos(angle * Math.PI / 180);
+                        const y = centerY + r * Math.sin(angle * Math.PI / 180);
+
+                        const hue = angle;
+                        const saturation = r / radius;
+                        const rgb = this.hsvToRgb(hue, saturation, this.brightness);
+
+                        this.colorWheelCtx.fillStyle = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+                        this.colorWheelCtx.fillRect(x, y, 1, 1);
+                    }
+                }
+            }
+
+            hsvToRgb(h, s, v) {
+                h = h % 360;
+                const c = v * s;
+                const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+                const m = v - c;
+
+                let r, g, b;
+                if (h < 60) { r = c; g = x; b = 0; }
+                else if (h < 120) { r = x; g = c; b = 0; }
+                else if (h < 180) { r = 0; g = c; b = x; }
+                else if (h < 240) { r = 0; g = x; b = c; }
+                else if (h < 300) { r = x; g = 0; b = c; }
+                else { r = c; g = 0; b = x; }
+
+                return {
+                    r: Math.round((r + m) * 255),
+                    g: Math.round((g + m) * 255),
+                    b: Math.round((b + m) * 255)
+                };
+            }
+
+            handleColorWheelClick(e) {
+                const rect = this.colorWheel.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                const centerX = 60;
+                const centerY = 60;
+                const dx = x - centerX;
+                const dy = y - centerY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance <= 50) {
+                    this.hue = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+                    this.saturation = Math.min(distance / 50, 1);
+                    this.updateColorFromHSB();
+                }
+            }
+
+            updateColorFromHSB() {
+                const rgb = this.hsvToRgb(this.hue, this.saturation, this.brightness);
+                this.currentColor = rgb;
+
+                document.getElementById('rgb-r').value = rgb.r;
+                document.getElementById('rgb-g').value = rgb.g;
+                document.getElementById('rgb-b').value = rgb.b;
+
+                this.updateColorPreview();
+                this.updateStatus();
+            }
+
+            updateColorPreview() {
+                const preview = document.getElementById('color-preview');
+                preview.style.backgroundColor = `rgb(${this.currentColor.r}, ${this.currentColor.g}, ${this.currentColor.b})`;
+            }
+
+            getPixelPosition(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const actualPixelSize = this.pixelSize * this.zoomLevel;
+                const x = Math.floor((e.clientX - rect.left) / actualPixelSize);
+                const y = Math.floor((e.clientY - rect.top) / actualPixelSize);
+                return { x, y };
+            }
+
+            handleCanvasMouseDown(e) {
+                const pos = this.getPixelPosition(e);
+
+                if (e.button === 0) { // Left click
+                    if (this.currentTool === 'eyedropper') {
+                        this.sampleColor(pos.x, pos.y);
+                    } else if (this.currentTool === 'bucket') {
+                        this.floodFill(pos.x, pos.y);
+                        this.saveState();
+                    } else if (this.currentTool === 'rectangle') {
+                        this.isRectSelecting = true;
+                        this.rectStart = pos;
+                        this.rectEnd = pos;
+                    } else { // brush
+                        this.isDrawing = true;
+                        this.drawPixel(pos.x, pos.y);
+                    }
+                } else if (e.button === 2 && this.isRectSelecting) { // Right click
+                    this.isRectSelecting = false;
+                    this.rectStart = null;
+                    this.rectEnd = null;
+                    this.updateCanvas();
+                }
+            }
+
+            sampleColor(x, y) {
+                if (x >= 0 && x < this.gridSize && y >= 0 && y < this.gridSize) {
+                    const color = this.grid[y][x];
+                    if (color) {
+                        // Update current color with sampled color
+                        this.currentColor = { ...color };
+
+                        // Update RGB inputs
+                        document.getElementById('rgb-r').value = color.r;
+                        document.getElementById('rgb-g').value = color.g;
+                        document.getElementById('rgb-b').value = color.b;
+
+                        // Update color preview
+                        this.updateColorPreview();
+
+                        // Update color wheel position (approximate)
+                        this.updateColorWheelFromRGB(color.r, color.g, color.b);
+
+                        // Update status
+                        this.updateStatus();
+                    }
+                }
+            }
+
+            updateColorWheelFromRGB(r, g, b) {
+                // Convert RGB to HSV for color wheel positioning
+                const max = Math.max(r, g, b) / 255;
+                const min = Math.min(r, g, b) / 255;
+                const delta = max - min;
+
+                // Calculate hue
+                let hue = 0;
+                if (delta !== 0) {
+                    if (max === r / 255) {
+                        hue = ((g / 255 - b / 255) / delta) % 6;
+                    } else if (max === g / 255) {
+                        hue = (b / 255 - r / 255) / delta + 2;
+                    } else {
+                        hue = (r / 255 - g / 255) / delta + 4;
+                    }
+                    hue *= 60;
+                    if (hue < 0) hue += 360;
+                }
+
+                // Calculate saturation
+                const saturation = max === 0 ? 0 : delta / max;
+
+                // Update internal color wheel state
+                this.hue = hue;
+                this.saturation = saturation;
+                this.brightness = max;
+
+                // Update brightness slider
+                document.getElementById('brightness-slider').value = Math.round(this.brightness * 100);
+            }
+
+            handleCanvasMouseMove(e) {
+                const pos = this.getPixelPosition(e);
+
+                if (this.isDrawing && this.currentTool === 'brush') {
+                    this.drawPixel(pos.x, pos.y);
+                } else if (this.isRectSelecting) {
+                    this.rectEnd = pos;
+                    this.updateCanvas();
+                }
+            }
+
+            handleCanvasMouseUp(e) {
+                if (this.isRectSelecting && e.button === 0) {
+                    this.drawRectangle();
+                    this.isRectSelecting = false;
+                    this.rectStart = null;
+                    this.rectEnd = null;
+                    this.saveState();
+                } else if (this.isDrawing) {
+                    this.isDrawing = false;
+                    this.saveState();
+                }
+            }
+
+            drawPixel(x, y) {
+                if (x >= 0 && x < this.gridSize && y >= 0 && y < this.gridSize) {
+                    this.grid[y][x] = this.eraserMode ? null : { ...this.currentColor };
+                    this.updateCanvas();
+                }
+            }
+
+            drawRectangle() {
+                if (!this.rectStart || !this.rectEnd) return;
+
+                const startX = Math.min(this.rectStart.x, this.rectEnd.x);
+                const endX = Math.max(this.rectStart.x, this.rectEnd.x);
+                const startY = Math.min(this.rectStart.y, this.rectEnd.y);
+                const endY = Math.max(this.rectStart.y, this.rectEnd.y);
+
+                const rect_color = this.eraserMode ? null : { ...this.currentColor };
+
+                for (let y = startY; y <= endY; y++) {
+                    for (let x = startX; x <= endX; x++) {
+                        if (x >= 0 && x < this.gridSize && y >= 0 && y < this.gridSize) {
+                            this.grid[y][x] = rect_color;
+                        }
+                    }
+                }
+                this.updateCanvas();
+            }
+
+            floodFill(startX, startY) {
+                if (startX < 0 || startX >= this.gridSize || startY < 0 || startY >= this.gridSize) return;
+
+                const originalColor = this.grid[startY][startX];
+                const newColor = this.eraserMode ? null : { ...this.currentColor };
+
+                if (this.colorsEqual(originalColor, newColor)) return;
+
+                const stack = [{ x: startX, y: startY }];
+                const visited = new Set();
+
+                while (stack.length > 0) {
+                    const { x, y } = stack.pop();
+                    const key = `${x},${y}`;
+
+                    if (visited.has(key) || x < 0 || x >= this.gridSize || y < 0 || y >= this.gridSize) continue;
+                    if (!this.colorsEqual(this.grid[y][x], originalColor)) continue;
+
+                    visited.add(key);
+                    this.grid[y][x] = newColor;
+
+                    stack.push({ x: x + 1, y }, { x: x - 1, y }, { x, y: y + 1 }, { x, y: y - 1 });
+                }
+
+                this.updateCanvas();
+            }
+
+            colorsEqual(color1, color2) {
+                if (color1 === null && color2 === null) return true;
+                if (color1 === null || color2 === null) return false;
+                return color1.r === color2.r && color1.g === color2.g && color1.b === color2.b;
+            }
+
+            updateCanvas() {
+                // Update canvas size based on zoom
+                const actualCanvasSize = this.baseCanvasSize * this.zoomLevel;
+                this.canvas.width = actualCanvasSize;
+                this.canvas.height = actualCanvasSize;
+                this.canvas.style.width = actualCanvasSize + 'px';
+                this.canvas.style.height = actualCanvasSize + 'px';
+
+                const actualPixelSize = this.pixelSize * this.zoomLevel;
+
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Draw grid
+                this.ctx.strokeStyle = '#ccc';
+                this.ctx.lineWidth = 1;
+
+                for (let x = 0; x <= this.gridSize; x++) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x * actualPixelSize, 0);
+                    this.ctx.lineTo(x * actualPixelSize, this.canvas.height);
+                    this.ctx.stroke();
+                }
+
+                for (let y = 0; y <= this.gridSize; y++) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y * actualPixelSize);
+                    this.ctx.lineTo(this.canvas.width, y * actualPixelSize);
+                    this.ctx.stroke();
+                }
+
+                // Draw pixels
+                for (let y = 0; y < this.gridSize; y++) {
+                    for (let x = 0; x < this.gridSize; x++) {
+                        const color = this.grid[y][x];
+                        if (color) {
+                            this.ctx.fillStyle = `rgb(${color.r}, ${color.g}, ${color.b})`;
+                            this.ctx.fillRect(x * actualPixelSize, y * actualPixelSize, actualPixelSize, actualPixelSize);
+                        }
+                    }
+                }
+
+                // Draw rectangle selection preview
+                if (this.isRectSelecting && this.rectStart && this.rectEnd) {
+                    const startX = Math.min(this.rectStart.x, this.rectEnd.x);
+                    const endX = Math.max(this.rectStart.x, this.rectEnd.x);
+                    const startY = Math.min(this.rectStart.y, this.rectEnd.y);
+                    const endY = Math.max(this.rectStart.y, this.rectEnd.y);
+
+                    const preview_color = this.eraserMode ? 'rgba(255, 255, 255, 0.5)' : `rgba(${this.currentColor.r}, ${this.currentColor.g}, ${this.currentColor.b}, 0.5)`;
+                    this.ctx.fillStyle = preview_color;
+
+                    for (let y = startY; y <= endY; y++) {
+                        for (let x = startX; x <= endX; x++) {
+                            this.ctx.fillRect(x * actualPixelSize, y * actualPixelSize, actualPixelSize, actualPixelSize);
+                        }
+                    }
+                }
+            }
+
+            changeGridSize(newSize) {
+                const oldGrid = this.copyGrid(this.grid);
+                this.gridSize = newSize;
+                this.pixelSize = this.baseCanvasSize / this.gridSize;
+                this.grid = this.createEmptyGrid();
+
+                // Copy old data where possible
+                for (let y = 0; y < Math.min(oldGrid.length, this.gridSize); y++) {
+                    for (let x = 0; x < Math.min(oldGrid[y].length, this.gridSize); x++) {
+                        this.grid[y][x] = oldGrid[y][x];
+                    }
+                }
+
+                this.updateCanvas();
+                this.saveState();
+                this.updateStatus();
+            }
+
+            changeZoom(direction) {
+                const zoomStep = 0.2;
+                const newZoomLevel = this.zoomLevel + (direction * zoomStep);
+
+                // Limit zoom level between 0.5x and 3x
+                if (newZoomLevel < 0.5 || newZoomLevel > 3.0) return;
+
+                this.zoomLevel = newZoomLevel;
+                this.updateCanvas();
+                this.updateStatus();
+            }
+
+            saveState() {
+                this.history = this.history.slice(0, this.historyIndex + 1);
+                this.history.push(this.copyGrid(this.grid));
+                this.historyIndex = this.history.length - 1;
+
+                if (this.history.length > 50) {
+                    this.history.shift();
+                    this.historyIndex--;
+                }
+
+                this.updateUndoRedoButtons();
+            }
+
+            undo() {
+                if (this.historyIndex > 0) {
+                    this.historyIndex--;
+                    this.grid = this.copyGrid(this.history[this.historyIndex]);
+                    this.updateCanvas();
+                    this.updateUndoRedoButtons();
+                }
+            }
+
+            redo() {
+                if (this.historyIndex < this.history.length - 1) {
+                    this.historyIndex++;
+                    this.grid = this.copyGrid(this.history[this.historyIndex]);
+                    this.updateCanvas();
+                    this.updateUndoRedoButtons();
+                }
+            }
+
+            updateUndoRedoButtons() {
+                document.getElementById('undo-btn').disabled = this.historyIndex <= 0;
+                document.getElementById('redo-btn').disabled = this.historyIndex >= this.history.length - 1;
+            }
+
+            exportImage(format) {
+                const exportCanvas = document.createElement('canvas');
+                exportCanvas.width = this.gridSize;
+                exportCanvas.height = this.gridSize;
+                const exportCtx = exportCanvas.getContext('2d');
+
+                // Fill with white background for non-transparent formats
+                if (format !== 'png') {
+                    exportCtx.fillStyle = 'white';
+                    exportCtx.fillRect(0, 0, this.gridSize, this.gridSize);
+                }
+
+                // Draw pixels
+                for (let y = 0; y < this.gridSize; y++) {
+                    for (let x = 0; x < this.gridSize; x++) {
+                        const color = this.grid[y][x];
+                        if (color) {
+                            exportCtx.fillStyle = `rgb(${color.r}, ${color.g}, ${color.b})`;
+                            exportCtx.fillRect(x, y, 1, 1);
+                        }
+                    }
+                }
+
+                const filename = document.getElementById('filename-input').value.trim() || 'sprite';
+                const link = document.createElement('a');
+                link.download = `${filename}.${format}`;
+                link.href = exportCanvas.toDataURL(`image/${format === 'jpg' ? 'jpeg' : format}`);
+                link.click();
+            }
+
+            updateStatus() {
+                const toolName = this.currentTool.charAt(0).toUpperCase() + this.currentTool.slice(1);
+                const eraserText = this.eraserMode ? ' (Eraser Mode)' : '';
+                const zoomText = ` | Zoom: ${Math.round(this.zoomLevel * 100)}%`;
+                const status = `Tool: ${toolName}${eraserText} | Grid: ${this.gridSize}x${this.gridSize}${zoomText} | Color: RGB(${this.currentColor.r}, ${this.currentColor.g}, ${this.currentColor.b})`;
+                document.getElementById('status-bar').textContent = status;
+            }
+        }
+
+        // Initialize the sprite editor when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new SpriteEditor();
+        });
+    </script>
+</body>
+</html>
